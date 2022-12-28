@@ -4,15 +4,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@mikro-orm/core");
-const Post_1 = require("./entities/Post");
 const mikro_orm_config_1 = __importDefault(require("./mikro-orm.config"));
+const express_1 = __importDefault(require("express"));
+const apollo_server_express_1 = require("apollo-server-express");
+const hello_1 = require("./resolvers/hello");
+const type_graphql_1 = require("type-graphql");
+const post_1 = require("./resolvers/post");
 const main = async () => {
     const orm = await core_1.MikroORM.init(mikro_orm_config_1.default);
+    await orm.getMigrator().up();
     const fork = orm.em.fork();
-    const post = fork.create(Post_1.Post, {
-        title: "first title",
+    const app = (0, express_1.default)();
+    const apolloServer = new apollo_server_express_1.ApolloServer({
+        schema: await (0, type_graphql_1.buildSchema)({
+            resolvers: [hello_1.HelloResolver, post_1.PostResolver],
+        }),
+        context: () => ({ fork }),
     });
-    await fork.persistAndFlush(post);
+    await apolloServer.start();
+    apolloServer.applyMiddleware({ app });
+    app.listen(4000, () => {
+        "Listening on Port:4000";
+    });
 };
 main().catch((err) => {
     console.error(err);

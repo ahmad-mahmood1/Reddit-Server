@@ -15,7 +15,7 @@ const mikroConfig = {
     user: "postgres",
     password: "postgres",
     type: "postgresql",
-    debug: constants_1.__prod__,
+    debug: !constants_1.__prod__,
 };
 exports.default = mikroConfig;
 //# sourceMappingURL=mikro-orm.config.js.map

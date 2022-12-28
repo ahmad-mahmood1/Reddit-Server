@@ -9,10 +9,10 @@ const mikroConfig: Options = {
   },
   entities: [path.join(__dirname, "./entities")], // path to our JS entities (dist), relative to `baseDir`
   dbName: "tracker",
-  user:"postgres",
-  password:"postgres",
+  user: "postgres",
+  password: "postgres",
   type: "postgresql",
-  debug: __prod__,
+  debug: !__prod__,
 };
 
 export default mikroConfig;
