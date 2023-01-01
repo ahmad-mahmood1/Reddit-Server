@@ -1,7 +1,6 @@
 import { RequiredEntityData } from "@mikro-orm/core";
 import { MyContext } from "src/types";
 import { Arg, Ctx, Mutation, Query, Resolver } from "type-graphql";
-import { boolean } from "yup";
 import { Post } from "../entities/Post";
 
 @Resolver()
