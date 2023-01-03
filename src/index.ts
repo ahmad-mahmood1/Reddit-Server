@@ -2,36 +2,30 @@ import { MikroORM } from "@mikro-orm/core";
 
 import type { PostgreSqlDriver } from "@mikro-orm/postgresql"; // or any other driver package
 import { ApolloServer } from "apollo-server-express";
+// import cors from "cors";
 import express from "express";
 import session from "express-session";
 import { createClient } from "redis";
+import { MyContext } from "src/types";
 import { buildSchema } from "type-graphql";
+import { __prod__ } from "./constants";
 import mikroConfig from "./mikro-orm.config";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResovler } from "./resolvers/user";
-import { __prod__ } from "./constants";
-import { MyContext } from "src/types";
-
-declare module "express-session" {
-  export interface SessionData {
-    userId: number;
-  }
-}
+import cors from "cors";
 
 const main = async () => {
   const orm = await MikroORM.init<PostgreSqlDriver>(mikroConfig);
   await orm.getMigrator().up();
   const fork = orm.em.fork();
   const app = express();
-  app.set("trust proxy", !__prod__);
-  app.set("Access-Control-Allow-Origin", "https://studio.apollographql.com");
-  app.set("Access-Control-Allow-Credentials", true);
 
-  const cors = {
+  const corsConfig = {
     credentials: true,
-    origin: "https://studio.apollographql.com",
+    origin: "http://localhost:3000",
   };
+  app.use(cors(corsConfig));
 
   let RedisStore = require("connect-redis")(session);
 
@@ -64,7 +58,10 @@ const main = async () => {
   });
 
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app, cors });
+  apolloServer.applyMiddleware({
+    app,
+    cors: false,
+  });
 
   app.listen(4000, () => {
     "Listening on Port:4000";
