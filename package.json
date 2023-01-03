@@ -7,7 +7,8 @@
     "watch": "tsc -w",
     "dev": "nodemon dist/index.js",
     "dev2": "ts-node src/index.ts",
-    "create:migration": "mikro-orm migration:create"
+    "create:migration": "mikro-orm migration:create",
+    "redis": "redis-server"
   },
   "author": "",
   "license": "ISC",

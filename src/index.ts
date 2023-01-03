@@ -40,8 +40,8 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: "none", //need to read on this
-        secure: !__prod__,
+        sameSite: "lax", //need to read on this
+        secure: __prod__,
       },
       saveUninitialized: false,
       secret: "keyboard cat",

@@ -95,7 +95,6 @@ export class UserResovler {
         };
       }
     }
-
     req.session.userId = user.id;
 
     return { user };
