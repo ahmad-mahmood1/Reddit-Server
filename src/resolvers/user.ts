@@ -1,3 +1,6 @@
+import { RequiredEntityData } from "@mikro-orm/core";
+import argon from "argon2";
+import { MyContext } from "src/types";
 import {
   Arg,
   Ctx,
@@ -8,10 +11,7 @@ import {
   Query,
   Resolver,
 } from "type-graphql";
-import { MyContext } from "src/types";
-import argon from "argon2";
 import { User } from "../entities/User";
-import { RequiredEntityData } from "@mikro-orm/core";
 
 @InputType()
 class UsernamePasswordInput {
@@ -52,7 +52,7 @@ export class UserResovler {
   }
 
   @Mutation(() => UserResponse)
-  async registration(
+  async registeration(
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { fork, req }: MyContext
   ): Promise<UserResponse> {
@@ -123,5 +123,22 @@ export class UserResovler {
     req.session.userId = user.id;
 
     return { user };
+  }
+
+  @Mutation(() => Boolean)
+  async logout(@Ctx() { req, res }: MyContext) {
+    const logoutPromise = new Promise((resolve) => {
+      res.clearCookie("qid");
+      req.session.destroy((err) => {
+        if (err) {
+          console.log("===error", err);
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      });
+    });
+    const isLoggedOut = await logoutPromise;
+    return isLoggedOut;
   }
 }
