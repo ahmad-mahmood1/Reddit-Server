@@ -17,6 +17,8 @@
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.15",
     "@types/node": "^18.11.18",
+    "@types/nodemailer": "^6.4.7",
+    "@types/uuid": "^9.0.0",
     "npm-run-all": "^4.1.5",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.4"
@@ -30,11 +32,15 @@
     "argon2": "^0.30.2",
     "class-validator": "^0.14.0",
     "cors": "^2.8.5",
+    "deep-email-validator": "^0.1.21",
     "express": "^4.18.2",
     "graphql": "15.7.2",
+    "ioredis": "^5.2.4",
+    "nodemailer": "^6.8.0",
     "nodemon": "^2.0.20",
     "pg": "^8.8.0",
-    "type-graphql": "^1.1.1"
+    "type-graphql": "^1.1.1",
+    "uuid": "^9.0.0"
   },
   "mikro-orm": {
     "useTsNode": true,

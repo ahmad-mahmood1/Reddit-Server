@@ -1,5 +1,6 @@
 import { PostgreSqlDriver, SqlEntityManager } from "@mikro-orm/postgresql";
 import { Request, Response } from "express";
+import { Redis } from "ioredis";
 
 declare module "express-session" {
   export interface SessionData {
@@ -11,4 +12,5 @@ export type MyContext = {
   fork: SqlEntityManager<PostgreSqlDriver>;
   req: Request;
   res: Response;
+  redis: Redis;
 };
