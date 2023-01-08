@@ -1,4 +1,3 @@
-import { RequiredEntityData } from "@mikro-orm/core";
 import argon from "argon2";
 import validate from "deep-email-validator";
 import { MyContext } from "src/types";
@@ -57,10 +56,10 @@ class UserResponse {
 export class UserResovler {
   @Mutation(() => Boolean)
   async forgotPassword(
-    @Ctx() { fork, redis }: MyContext,
+    @Ctx() { redis }: MyContext,
     @Arg("email") email: string
   ) {
-    const user = await fork.findOne(User, { email });
+    const user = await User.findOneBy({ email });
 
     if (!user) return true;
 
@@ -82,7 +81,7 @@ export class UserResovler {
   async changePassword(
     @Arg("newPassword") newPassword: string,
     @Arg("token") token: string,
-    @Ctx() { redis, fork, req }: MyContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 3) {
       return {
@@ -107,7 +106,7 @@ export class UserResovler {
       };
     }
 
-    const user = await fork.findOne(User, { id: parseInt(userId) });
+    const user = await User.findOneBy({ id: parseInt(userId) });
 
     if (!user) {
       return {
@@ -123,26 +122,26 @@ export class UserResovler {
     const hashedPassword = await argon.hash(newPassword);
     user.password = hashedPassword;
 
+    await User.save(user);
     req.session.userId = user.id;
-    fork.persistAndFlush(user);
     redis.del(FORFOT_PASSWORD_PREFIX + token);
     return { user };
   }
 
   @Query(() => User, { nullable: true })
-  async me(@Ctx() { fork, req }: MyContext) {
+  async me(@Ctx() { req }: MyContext) {
     if (!req.session.userId) {
       return null;
     }
 
-    const user = await fork.findOne(User, { id: req.session.userId });
+    const user = await User.findOneBy({ id: req.session.userId });
     return user;
   }
 
   @Mutation(() => UserResponse)
   async registeration(
     @Arg("options") options: RegsiterInput,
-    @Ctx() { fork, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const emailValidation = await validate({
       email: options.email,
@@ -185,14 +184,16 @@ export class UserResovler {
     }
 
     const hashedPassword = await argon.hash(options.password);
-    const user = fork.create(User, {
+
+    const user = User.create({
       username: options.username,
       password: hashedPassword,
       email: options.email,
-    } as RequiredEntityData<User>);
-
+    });
     try {
-      await fork.persistAndFlush(user);
+      await user.save();
+      req.session.userId = user.id;
+      return { user };
     } catch (err) {
       console.log("===  err", err);
       if (err.code === "23505") {
@@ -205,15 +206,13 @@ export class UserResovler {
         };
       }
     }
-    req.session.userId = user.id;
-
     return { user };
   }
 
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: LoginInput,
-    @Ctx() { fork, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const { emailOrUsername, password } = options;
 
@@ -228,8 +227,7 @@ export class UserResovler {
       };
     }
 
-    const user = await fork.findOne(
-      User,
+    const user = await User.findOneBy(
       emailOrUsername.includes("@")
         ? { email: options.emailOrUsername }
         : { username: options.emailOrUsername }
@@ -255,7 +253,7 @@ export class UserResovler {
 
   @Mutation(() => Boolean)
   async logout(@Ctx() { req, res }: MyContext) {
-    const logoutPromise = new Promise((resolve) => {
+    return new Promise((resolve) => {
       res.clearCookie("qid");
       req.session.destroy((err) => {
         if (err) {
@@ -266,7 +264,5 @@ export class UserResovler {
         resolve(true);
       });
     });
-    const isLoggedOut = await logoutPromise;
-    return isLoggedOut;
   }
 }

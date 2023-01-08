@@ -3,22 +3,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const core_1 = require("@mikro-orm/core");
 const apollo_server_express_1 = require("apollo-server-express");
 const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
 const express_session_1 = __importDefault(require("express-session"));
 const ioredis_1 = __importDefault(require("ioredis"));
+require("reflect-metadata");
 const type_graphql_1 = require("type-graphql");
+const typeorm_1 = require("typeorm");
 const constants_1 = require("./constants");
-const mikro_orm_config_1 = __importDefault(require("./mikro-orm.config"));
 const hello_1 = require("./resolvers/hello");
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
 const main = async () => {
-    const orm = await core_1.MikroORM.init(mikro_orm_config_1.default);
-    await orm.getMigrator().up();
-    const fork = orm.em.fork();
+    const dataSource = new typeorm_1.DataSource({
+        entities: ["dist/entities/*js"],
+        database: "tracker",
+        username: "postgres",
+        password: "postgres",
+        type: "postgres",
+        logging: !constants_1.__prod__,
+        synchronize: true,
+    });
+    await dataSource.initialize();
     const app = (0, express_1.default)();
     const corsConfig = {
         credentials: true,
@@ -45,7 +52,7 @@ const main = async () => {
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, user_1.UserResovler],
             validate: false,
         }),
-        context: ({ req, res }) => ({ fork, req, res, redis }),
+        context: ({ req, res }) => ({ req, res, redis }),
     });
     await apolloServer.start();
     apolloServer.applyMiddleware({
