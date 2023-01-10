@@ -10,22 +10,13 @@ const express_session_1 = __importDefault(require("express-session"));
 const ioredis_1 = __importDefault(require("ioredis"));
 require("reflect-metadata");
 const type_graphql_1 = require("type-graphql");
-const typeorm_1 = require("typeorm");
 const constants_1 = require("./constants");
+const dataSource_1 = __importDefault(require("./dataSource"));
 const hello_1 = require("./resolvers/hello");
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
 const main = async () => {
-    const dataSource = new typeorm_1.DataSource({
-        entities: ["dist/entities/*js"],
-        database: "tracker",
-        username: "postgres",
-        password: "postgres",
-        type: "postgres",
-        logging: !constants_1.__prod__,
-        synchronize: true,
-    });
-    await dataSource.initialize();
+    await dataSource_1.default.initialize();
     const app = (0, express_1.default)();
     const corsConfig = {
         credentials: true,
@@ -52,7 +43,7 @@ const main = async () => {
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, user_1.UserResovler],
             validate: false,
         }),
-        context: ({ req, res }) => ({ req, res, redis }),
+        context: ({ req, res }) => ({ req, res, redis, dataSource: dataSource_1.default }),
     });
     await apolloServer.start();
     apolloServer.applyMiddleware({

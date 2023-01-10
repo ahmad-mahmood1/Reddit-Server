@@ -6,23 +6,13 @@ import Redis from "ioredis";
 import "reflect-metadata";
 import { MyContext } from "src/types";
 import { buildSchema } from "type-graphql";
-import { DataSource } from "typeorm";
 import { __prod__ } from "./constants";
+import dataSource from "./dataSource";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResovler } from "./resolvers/user";
 
 const main = async () => {
-  const dataSource = new DataSource({
-    entities: ["dist/entities/*js"], // path to our JS entities (dist), relative to `baseDir`
-    database: "tracker",
-    username: "postgres",
-    password: "postgres",
-    type: "postgres",
-    logging: !__prod__,
-    synchronize: true,
-  });
-
   await dataSource.initialize();
 
   const app = express();
@@ -54,9 +44,10 @@ const main = async () => {
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResovler],
+      // globalMiddlewares: [auth],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ req, res, redis }),
+    context: ({ req, res }): MyContext => ({ req, res, redis, dataSource }),
   });
 
   await apolloServer.start();

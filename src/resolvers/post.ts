@@ -1,30 +1,86 @@
+import { MyContext } from "src/types";
 import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   InputType,
+  Int,
   Mutation,
+  ObjectType,
   Query,
   Resolver,
+  Root,
   UseMiddleware,
 } from "type-graphql";
 import { Post } from "../entities/Post";
-import { MyContext } from "src/types";
 import { auth } from "../middleware/auth";
+import { FieldError } from "./user";
 
 @InputType()
 class PostInput {
   @Field()
-  title!: string;
+  title: string;
   @Field()
-  text!: string;
+  text: string;
 }
 
-@Resolver()
+@ObjectType()
+class PostResponse {
+  @Field(() => [FieldError], { nullable: true })
+  error?: FieldError[];
+
+  @Field(() => Post, { nullable: true })
+  post?: Post;
+}
+
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+  @Field()
+  hasMore: boolean;
+}
+
+@Resolver(() => Post)
 export class PostResolver {
-  @Query(() => [Post])
-  posts(): Promise<Post[]> {
-    return Post.find({});
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: Post) {
+    return root.text.slice(0, 50);
+  }
+
+  @Query(() => PaginatedPosts)
+  async posts(
+    @Ctx() { dataSource }: MyContext,
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+  ): Promise<PaginatedPosts> {
+    const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = realLimit + 1;
+
+    const replacements: any[] = [realLimitPlusOne];
+
+    if (cursor) {
+      replacements.push(cursor);
+    }
+
+    const posts = await dataSource.query(
+      `
+    select p.*
+    from post p
+    ${cursor ? `where p."createdAt" < $2` : ""}
+    order by p."createdAt" DESC
+    limit $1
+    `,
+      replacements
+    );
+
+    console.log("===  posts", posts);
+
+    return {
+      posts: posts.slice(0, realLimit),
+      hasMore: posts.length === realLimitPlusOne,
+    };
   }
 
   @Query(() => Post, { nullable: true })
@@ -32,13 +88,28 @@ export class PostResolver {
     return Post.findOneBy({ id });
   }
 
-  @Mutation(() => Post)
+  @Mutation(() => PostResponse)
   @UseMiddleware(auth)
   async createPost(
     @Ctx() { req }: MyContext,
     @Arg("options") options: PostInput
-  ): Promise<Post> {
-    return Post.create({ ...options, creatorId: req.session.userId }).save();
+  ): Promise<PostResponse> {
+    let error = [];
+    if (!options.text) {
+      error.push({ field: "text", message: "Post body cannot be empty" });
+    }
+    if (!options.title) {
+      error.push({ field: "title", message: "Post title cannot be empty" });
+    }
+
+    if (!!error.length) return { error };
+
+    const post: Post = Post.create({
+      ...options,
+      creatorId: req.session.userId,
+    });
+    await post.save();
+    return { post };
   }
 
   @Mutation(() => Post, { nullable: true })
