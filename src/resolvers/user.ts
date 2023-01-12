@@ -205,7 +205,6 @@ export class UserResovler {
       req.session.userId = user.id;
       return { user };
     } catch (err) {
-      console.log("===  err", err);
       if (err.code === "23505") {
         return {
           error: [
@@ -267,7 +266,6 @@ export class UserResovler {
       res.clearCookie("qid");
       req.session.destroy((err) => {
         if (err) {
-          console.log("===error", err);
           resolve(false);
           return;
         }

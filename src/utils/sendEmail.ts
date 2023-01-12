@@ -20,13 +20,11 @@ async function sendEmail(to: string, html: string): Promise<void> {
 
   // send mail with defined transport object
   let info = await transporter.sendMail({
-    from: '"Fred Foo 👻" <foo@example.com>', // sender address
+    from: "ahmad.mahmood.a90@gmail.com", // sender address
     to, // list of receivers
-    subject: "Hello ✔", // Subject line
+    subject: "Change Password ✔", // Subject line
     html, // plain text body
   });
-
-  console.log("Message sent: %s", info.messageId);
 
   // Preview only available when sending through an Ethereal account
   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));

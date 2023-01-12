@@ -18,7 +18,6 @@ export const createPointsLoader = () =>
     votes.forEach((vote) => {
       pointsForPost[vote.postId] = parseInt(vote.points);
     });
-    console.log("===  votes", votes);
     return postIds.map((postId) =>
       pointsForPost[postId] ? pointsForPost[postId] : 0
     );
