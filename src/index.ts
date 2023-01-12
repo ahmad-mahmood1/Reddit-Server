@@ -11,6 +11,9 @@ import dataSource from "./dataSource";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResovler } from "./resolvers/user";
+import { createPointsLoader } from "./utils/createPointsLoader";
+import { createUserLoader } from "./utils/createUserLoader";
+import { createVoteLoader } from "./utils/createVoteLoader";
 
 const main = async () => {
   await dataSource.initialize();
@@ -47,7 +50,14 @@ const main = async () => {
       // globalMiddlewares: [auth],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ req, res, redis, dataSource }),
+    context: ({ req, res }): MyContext => ({
+      req,
+      res,
+      redis,
+      userLoader: createUserLoader(),
+      voteLoader: createVoteLoader(),
+      pointsLoader: createPointsLoader(),
+    }),
   });
 
   await apolloServer.start();

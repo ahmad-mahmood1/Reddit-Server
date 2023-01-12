@@ -32,14 +32,12 @@ __decorate([
     __metadata("design:type", String)
 ], Post.prototype, "text", void 0);
 __decorate([
-    (0, type_graphql_1.Field)(),
-    (0, typeorm_1.Column)({ default: 0 }),
+    (0, type_graphql_1.Field)(() => type_graphql_1.Int, { defaultValue: 0 }),
     __metadata("design:type", Number)
 ], Post.prototype, "points", void 0);
 __decorate([
     (0, type_graphql_1.Field)(() => type_graphql_1.Int, { nullable: true }),
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
+    __metadata("design:type", Object)
 ], Post.prototype, "voteStatus", void 0);
 __decorate([
     (0, type_graphql_1.Field)(),

@@ -14,10 +14,11 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { LessThan } from "typeorm";
 import { Post } from "../entities/Post";
 import { auth } from "../middleware/auth";
 import { FieldError } from "./user";
+import dataSource from "../dataSource";
+import { User } from "../entities/User";
 
 @InputType()
 class PostInput {
@@ -51,104 +52,101 @@ export class PostResolver {
     return root.text.slice(0, 50);
   }
 
-  @Mutation(() => Boolean)
+  @FieldResolver(() => User)
+  creator(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    return userLoader.load(post.creatorId);
+  }
+
+  @FieldResolver(() => Int)
+  async points(@Root() post: Post, @Ctx() { pointsLoader }: MyContext) {
+    const points = await pointsLoader.load(post.id);
+    return points;
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(@Root() post: Post, @Ctx() { voteLoader, req }: MyContext) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const updoot = await voteLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    });
+
+    return updoot ? updoot.value : null;
+  }
+
+  @Mutation(() => PostResponse)
   @UseMiddleware(auth)
   async vote(
     @Arg("postId", () => Int) postId: number,
-    @Arg("value", () => Int) value: number,
-    @Ctx() { req, dataSource }: MyContext
-  ) {
-    const isUpdoot = value !== -1;
-    const realValue = isUpdoot ? 1 : -1;
+    @Arg("value", () => Int) value: 1 | -1,
+    @Ctx() { req }: MyContext
+  ): Promise<PostResponse> {
+    const isUpVote = value !== -1;
+    const voteValue = isUpVote ? 1 : -1;
+
     const { userId } = req.session;
 
     const vote = await Votes.findOne({ where: { postId, userId } });
+    const post = await Post.findOne({ where: { id: postId } });
 
-    if (vote && vote.value !== realValue) {
-      await dataSource.transaction(async (tm) => {
-        await tm.query(
-          `
-    update votes
-    set value = $1
-    where "postId" = $2 and "userId" = $3
-        `,
-          [realValue, postId, userId]
-        );
-
-        await tm.query(
-          `
-          update post
-          set points = points + $1
-          where id = $2
-        `,
-          [2 * realValue, postId]
-        );
-      });
-    } else if (!vote) {
-      await dataSource.transaction(async (tm) => {
-        await tm.query(
-          `
-    insert into votes ("userId", "postId", value)
-    values ($1, $2, $3)
-        `,
-          [userId, postId, realValue]
-        );
-
-        await tm.query(
-          `
-    update post
-    set points = points + $1
-    where id = $2
-      `,
-          [realValue, postId]
-        );
-      });
+    if (!post) {
+      return {
+        error: [{ field: "postId", message: "Invalid Post Id" }],
+      };
     }
-    return true;
+
+    if (!vote) {
+      // const updatedPost = await dataSource.transaction(async (manager) => {
+      //   const newVote = manager.create(Votes, { value, postId, userId });
+      //   await manager.save(newVote);
+
+      //   const updatePost = await manager.save(post);
+
+      //   return updatePost;
+      // });
+
+      const newVote = Votes.create({ value: voteValue, postId, userId });
+      await newVote.save();
+      return { post };
+    }
+    if (vote && vote.value !== voteValue) {
+      // const updatedPost = await dataSource.transaction(async (manager) => {
+      //   vote.value = voteValue;
+      //   await manager.save(vote);
+
+      //   const updatePost = await manager.save(post);
+
+      //   return updatePost;
+      // });
+      vote.value = voteValue;
+      await vote.save();
+      return { post };
+    }
+
+    return { post };
   }
 
   @Query(() => PaginatedPosts)
   async posts(
-    @Ctx() { dataSource, req }: MyContext,
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => Date, { nullable: true }) cursor: Date | null
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
     const realLimitPlusOne = realLimit + 1;
-    // const posts = await postRepo.find({
-    //   relations: {
-    //     creator: true,
-    //     votes: true,
-    //   },
-    //   where: {
-    //     ...(cursor && { createdAt: LessThan(cursor) }),
-    //   },
-    //   take: realLimitPlusOne,
-    //   order: {
-    //     createdAt: "DESC",
-    //   },
-    // });
+    const replacements: any[] = [realLimitPlusOne];
 
-    // const votes = await voteRepo.find({
-    //   where: { userId: req.session.userId },
-    // });
-    const replacements: any[] = [realLimitPlusOne, req.session.userId];
     if (cursor) {
       replacements.push(cursor);
     }
-    console.log("===  replacements", replacements);
 
     const posts = await dataSource.query(
       `
-      select p.*, json_build_object(
-        'id',u.id,
-        'username',u.username,
-          'email',u.email
-        ) creator,
-        (select votes.value from votes where "userId" = $2 and "postId" = p.id ) "voteStatus"
-        from post p
-        inner join public.user u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $3` : ""}
+    select p.*
+    from post p
+    ${cursor ? `where p."createdAt" < $2` : ""}
     order by p."createdAt" DESC
     limit $1
     `,
@@ -162,10 +160,7 @@ export class PostResolver {
   }
 
   @Query(() => Post, { nullable: true })
-  post(
-    @Arg("id", () => Int) id: number,
-    @Ctx() { dataSource }: MyContext
-  ): Promise<Post | null> {
+  post(@Arg("id", () => Int) id: number): Promise<Post | null> {
     const postRepo = dataSource.getRepository(Post);
     return postRepo.findOne({
       relations: { creator: true },
@@ -205,7 +200,7 @@ export class PostResolver {
     @Arg("id", () => Int) id: number,
     @Arg("title") title: string,
     @Arg("text") text: string,
-    @Ctx() { dataSource, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<Post | null> {
     const result = await dataSource
       .createQueryBuilder()

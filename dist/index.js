@@ -15,6 +15,9 @@ const dataSource_1 = __importDefault(require("./dataSource"));
 const hello_1 = require("./resolvers/hello");
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
+const createPointsLoader_1 = require("./utils/createPointsLoader");
+const createUserLoader_1 = require("./utils/createUserLoader");
+const createVoteLoader_1 = require("./utils/createVoteLoader");
 const main = async () => {
     await dataSource_1.default.initialize();
     const app = (0, express_1.default)();
@@ -43,7 +46,14 @@ const main = async () => {
             resolvers: [hello_1.HelloResolver, post_1.PostResolver, user_1.UserResovler],
             validate: false,
         }),
-        context: ({ req, res }) => ({ req, res, redis, dataSource: dataSource_1.default }),
+        context: ({ req, res }) => ({
+            req,
+            res,
+            redis,
+            userLoader: (0, createUserLoader_1.createUserLoader)(),
+            voteLoader: (0, createVoteLoader_1.createVoteLoader)(),
+            pointsLoader: (0, createPointsLoader_1.createPointsLoader)(),
+        }),
     });
     await apolloServer.start();
     apolloServer.applyMiddleware({
