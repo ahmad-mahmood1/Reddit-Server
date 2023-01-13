@@ -294,5 +294,5 @@ Curabitur in libero ut massa volutpat convallis. Morbi odio odio, elementum eu, 
         `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {}
+  public async down(_: QueryRunner): Promise<void> {}
 }
