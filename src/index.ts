@@ -1,29 +1,33 @@
-import { ApolloServer } from "apollo-server-express";
+// import { ApolloServer } from "apollo-server-express";
+import { expressMiddleware } from "@apollo/server/express4";
 import cors from "cors";
 import express from "express";
 import session from "express-session";
 import Redis from "ioredis";
 import "reflect-metadata";
-import { MyContext } from "src/types";
+
+import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import bodyParser from "body-parser";
+import http from "http";
 import { buildSchema } from "type-graphql";
 import { __prod__ } from "./constants";
 import dataSource from "./dataSource";
-import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResovler } from "./resolvers/user";
 import { createPointsLoader } from "./utils/createPointsLoader";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createVoteLoader } from "./utils/createVoteLoader";
-
 const main = async () => {
-  await dataSource.initialize();
+  await dataSource.initialize(); //typeorm initalization
 
   const app = express();
+  const httpServer = http.createServer(app);
+
   const corsConfig = {
     credentials: true,
     origin: "http://localhost:3000",
   };
-  app.use(cors(corsConfig));
 
   let RedisStore = require("connect-redis")(session);
   let redis = new Redis();
@@ -46,29 +50,32 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [HelloResolver, PostResolver, UserResovler],
-      // globalMiddlewares: [auth],
+      resolvers: [PostResolver, UserResovler],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({
-      req,
-      res,
-      redis,
-      userLoader: createUserLoader(),
-      voteLoader: createVoteLoader(),
-      pointsLoader: createPointsLoader(),
-    }),
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
   });
 
   await apolloServer.start();
-  apolloServer.applyMiddleware({
-    app,
-    cors: false,
-  });
 
-  app.listen(4000, () => {
-    "Listening on Port:4000";
-  });
+  app.use(
+    cors(corsConfig),
+    bodyParser.json(),
+    expressMiddleware(apolloServer, {
+      context: async ({ req, res }) => ({
+        req,
+        res,
+        redis,
+        userLoader: createUserLoader(),
+        voteLoader: createVoteLoader(),
+        pointsLoader: createPointsLoader(),
+      }),
+    })
+  );
+
+  await new Promise<void>((resolve) =>
+    httpServer.listen({ port: 4000 }, resolve)
+  );
 };
 
 main().catch((err) => {
