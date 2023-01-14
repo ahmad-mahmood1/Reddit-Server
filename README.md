@@ -1,2 +1,2 @@
-# react_fullstack
-A fullstack react applicaiton using typescript, graphql, node, postgresql 
+# Reddit Backend
+Graphql based Apollo Server integrated through TypeORM and Type-Graphql on a Postgres Database
