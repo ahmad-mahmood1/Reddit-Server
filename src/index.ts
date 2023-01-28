@@ -19,7 +19,6 @@ const main = async () => {
   dotenv.config();
   await dataSource.initialize();
   const app = express();
-  app.set("trust proxy", 1);
   const corsConfig = {
     credentials: true,
     origin: process.env.CORS_ORIGIN,
@@ -40,16 +39,14 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: "none", //need to read on this
-        secure: true,
+        sameSite: __prod__ ? "none" : "lax",
+        secure: __prod__ ? true : false,
       },
       saveUninitialized: false,
       secret: process.env.SESSION_SECRET as string,
       resave: false,
     })
   );
-
-  console.log("===  __prod__", __prod__);
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
