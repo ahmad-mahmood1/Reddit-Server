@@ -224,7 +224,7 @@ export class UserResovler {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: LoginInput,
-    @Ctx() { req, res }: MyContext
+    @Ctx() { res }: MyContext
   ): Promise<UserResponse> {
     const { emailOrUsername, password } = options;
 

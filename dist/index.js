@@ -27,9 +27,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const apollo_server_express_1 = require("apollo-server-express");
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
+const dotenv = __importStar(require("dotenv"));
 const express_1 = __importDefault(require("express"));
-const express_session_1 = __importDefault(require("express-session"));
 const ioredis_1 = __importDefault(require("ioredis"));
 require("reflect-metadata");
 const type_graphql_1 = require("type-graphql");
@@ -39,8 +40,6 @@ const user_1 = require("./resolvers/user");
 const createPointsLoader_1 = require("./utils/createPointsLoader");
 const createUserLoader_1 = require("./utils/createUserLoader");
 const createVoteLoader_1 = require("./utils/createVoteLoader");
-const dotenv = __importStar(require("dotenv"));
-const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const main = async () => {
     dotenv.config();
     await dataSource_1.default.initialize();
@@ -50,7 +49,6 @@ const main = async () => {
         origin: process.env.CORS_ORIGIN,
     };
     app.use((0, cors_1.default)(corsConfig));
-    let RedisStore = require("connect-redis")(express_session_1.default);
     let redis = new ioredis_1.default({
         host: process.env.REDIS_HOST,
         port: parseInt(process.env.REDIS_PORT),
