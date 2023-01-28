@@ -99,28 +99,11 @@ export class PostResolver {
     }
 
     if (!vote) {
-      // const updatedPost = await dataSource.transaction(async (manager) => {
-      //   const newVote = manager.create(Votes, { value, postId, userId });
-      //   await manager.save(newVote);
-
-      //   const updatePost = await manager.save(post);
-
-      //   return updatePost;
-      // });
-
       const newVote = Votes.create({ value: voteValue, postId, userId });
       await newVote.save();
       return { post };
     }
     if (vote && vote.value !== voteValue) {
-      // const updatedPost = await dataSource.transaction(async (manager) => {
-      //   vote.value = voteValue;
-      //   await manager.save(vote);
-
-      //   const updatePost = await manager.save(post);
-
-      //   return updatePost;
-      // });
       vote.value = voteValue;
       await vote.save();
       return { post };

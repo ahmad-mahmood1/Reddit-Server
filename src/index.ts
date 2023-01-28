@@ -8,25 +8,30 @@ import { MyContext } from "src/types";
 import { buildSchema } from "type-graphql";
 import { __prod__ } from "./constants";
 import dataSource from "./dataSource";
-import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResovler } from "./resolvers/user";
 import { createPointsLoader } from "./utils/createPointsLoader";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createVoteLoader } from "./utils/createVoteLoader";
+import * as dotenv from "dotenv";
 
 const main = async () => {
+  dotenv.config();
   await dataSource.initialize();
 
   const app = express();
   const corsConfig = {
     credentials: true,
-    origin: "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN,
   };
   app.use(cors(corsConfig));
 
   let RedisStore = require("connect-redis")(session);
-  let redis = new Redis();
+  let redis = new Redis({
+    host: process.env.REDIS_HOST as string,
+    port: parseInt(process.env.REDIS_PORT as string) as number,
+    password: process.env.REDIS_PASSWORD as string,
+  });
 
   app.use(
     session({
@@ -39,15 +44,14 @@ const main = async () => {
         secure: __prod__,
       },
       saveUninitialized: false,
-      secret: "keyboard cat",
+      secret: process.env.SESSION_SECRET as string,
       resave: false,
     })
   );
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [HelloResolver, PostResolver, UserResovler],
-      // globalMiddlewares: [auth],
+      resolvers: [PostResolver, UserResovler],
       validate: false,
     }),
     context: ({ req, res }): MyContext => ({
