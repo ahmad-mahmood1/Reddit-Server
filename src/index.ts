@@ -40,14 +40,16 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: "lax", //need to read on this
-        secure: __prod__,
+        sameSite: "none", //need to read on this
+        secure: true,
       },
       saveUninitialized: false,
       secret: process.env.SESSION_SECRET as string,
       resave: false,
     })
   );
+
+  console.log("===  __prod__", __prod__);
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
