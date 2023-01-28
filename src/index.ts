@@ -14,6 +14,7 @@ import { createPointsLoader } from "./utils/createPointsLoader";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createVoteLoader } from "./utils/createVoteLoader";
 import * as dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 
 const main = async () => {
   dotenv.config();
@@ -32,21 +33,23 @@ const main = async () => {
     password: process.env.REDIS_PASSWORD as string,
   });
 
-  app.use(
-    session({
-      name: "qid",
-      store: new RedisStore({ client: redis, disableTouch: true }),
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
-        httpOnly: true,
-        sameSite: __prod__ ? "none" : "lax",
-        secure: __prod__ ? true : false,
-      },
-      saveUninitialized: false,
-      secret: process.env.SESSION_SECRET as string,
-      resave: false,
-    })
-  );
+  // app.use(
+  //   session({
+  //     name: "qid",
+  //     store: new RedisStore({ client: redis, disableTouch: true }),
+  //     cookie: {
+  //       maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+  //       httpOnly: true,
+  //       sameSite: __prod__ ? "none" : "lax",
+  //       secure: __prod__ ? true : false,
+  //     },
+  //     saveUninitialized: false,
+  //     secret: process.env.SESSION_SECRET as string,
+  //     resave: false,
+  //   })
+  // );
+
+  app.use(cookieParser(process.env.SESSION_SECRET));
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({

@@ -17,6 +17,7 @@ import { v4 } from "uuid";
 import { FORFOT_PASSWORD_PREFIX } from "../constants";
 import { User } from "../entities/User";
 import sendEmail from "../utils/sendEmail";
+import { setUserCookie } from "../utils/setUserId";
 
 @InputType()
 class RegsiterInput {
@@ -58,7 +59,7 @@ class UserResponse {
 export class UserResovler {
   @FieldResolver(() => String)
   email(@Root() user: User, @Ctx() { req }: MyContext) {
-    if (req.session.userId === user.id) {
+    if (req.signedCookies.uid === user.id) {
       return user.email;
     }
     return "";
@@ -91,7 +92,7 @@ export class UserResovler {
   async changePassword(
     @Arg("newPassword") newPassword: string,
     @Arg("token") token: string,
-    @Ctx() { redis, req }: MyContext
+    @Ctx() { redis, res }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 3) {
       return {
@@ -133,25 +134,27 @@ export class UserResovler {
     user.password = hashedPassword;
 
     await User.save(user);
-    req.session.userId = user.id;
+
+    setUserCookie(res, user.id);
+
     redis.del(FORFOT_PASSWORD_PREFIX + token);
     return { user };
   }
 
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req }: MyContext) {
-    if (!req.session.userId) {
+    if (!req.signedCookies.uid) {
       return null;
     }
 
-    const user = await User.findOneBy({ id: req.session.userId });
+    const user = await User.findOneBy({ id: req.signedCookies.uid });
     return user;
   }
 
   @Mutation(() => UserResponse)
   async registeration(
     @Arg("options") options: RegsiterInput,
-    @Ctx() { req }: MyContext
+    @Ctx() { res }: MyContext
   ): Promise<UserResponse> {
     const emailValidation = await validate({
       email: options.email,
@@ -202,7 +205,7 @@ export class UserResovler {
     });
     try {
       await user.save();
-      req.session.userId = user.id;
+      setUserCookie(res, user.id);
       return { user };
     } catch (err) {
       if (err.code === "23505") {
@@ -221,7 +224,7 @@ export class UserResovler {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: LoginInput,
-    @Ctx() { req }: MyContext
+    @Ctx() { req, res }: MyContext
   ): Promise<UserResponse> {
     const { emailOrUsername, password } = options;
 
@@ -255,22 +258,16 @@ export class UserResovler {
       };
     }
 
-    req.session.userId = user.id;
+    setUserCookie(res, user.id);
 
     return { user };
   }
 
   @Mutation(() => Boolean)
-  async logout(@Ctx() { req, res }: MyContext) {
+  async logout(@Ctx() { res }: MyContext) {
     return new Promise((resolve) => {
-      res.clearCookie("qid");
-      req.session.destroy((err) => {
-        if (err) {
-          resolve(false);
-          return;
-        }
-        resolve(true);
-      });
+      res.clearCookie("uid");
+      resolve(true);
     });
   }
 }
