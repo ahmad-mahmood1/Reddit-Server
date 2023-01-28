@@ -35,6 +35,7 @@
     "deep-email-validator": "^0.1.21",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
+    "express-session": "^1.17.3",
     "graphql": "15.7.2",
     "ioredis": "^5.2.4",
     "nodemailer": "^6.8.0",
