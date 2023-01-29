@@ -18,7 +18,6 @@ const main = async () => {
   dotenv.config();
   await dataSource.initialize();
   const app = express();
-  app.set("trust proxy", 1);
   const corsConfig = {
     credentials: true,
     origin: process.env.CORS_ORIGIN,
