@@ -266,7 +266,7 @@ export class UserResovler {
   @Mutation(() => Boolean)
   async logout(@Ctx() { res }: MyContext) {
     return new Promise((resolve) => {
-      res.clearCookie("uid");
+      setUserCookie(res, 0, 0);
       resolve(true);
     });
   }
