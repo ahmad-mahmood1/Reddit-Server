@@ -18,12 +18,12 @@ const main = async () => {
   dotenv.config();
   await dataSource.initialize();
   const app = express();
+  app.set("trust proxy", 1);
   const corsConfig = {
     credentials: true,
     origin: process.env.CORS_ORIGIN,
   };
   app.use(cors(corsConfig));
-
   let redis = new Redis({
     host: process.env.REDIS_HOST as string,
     port: parseInt(process.env.REDIS_PORT as string) as number,
