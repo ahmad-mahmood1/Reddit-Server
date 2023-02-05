@@ -43,6 +43,8 @@ class PaginatedPosts {
   posts: Post[];
   @Field()
   hasMore: boolean;
+  @Field()
+  cursor: Date;
 }
 
 @Resolver(() => Post)
@@ -135,9 +137,17 @@ export class PostResolver {
       replacements
     );
 
+    const realLimitPosts = posts.slice(0, realLimit);
+    console.log("===  realLimitPosts", realLimitPosts);
+    console.log(
+      "===cursor",
+      realLimitPosts[realLimitPosts.length - 1].createdAt
+    );
+
     return {
-      posts: posts.slice(0, realLimit),
+      posts: realLimitPosts,
       hasMore: posts.length === realLimitPlusOne,
+      cursor: realLimitPosts[realLimitPosts.length - 1].createdAt,
     };
   }
 
