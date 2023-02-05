@@ -59,7 +59,7 @@ class UserResponse {
 export class UserResovler {
   @FieldResolver(() => String)
   email(@Root() user: User, @Ctx() { req }: MyContext) {
-    if (req.signedCookies.uid === user.id) {
+    if (req.signedCookies.uid === user.id.toString()) {
       return user.email;
     }
     return "";
@@ -266,7 +266,7 @@ export class UserResovler {
   @Mutation(() => Boolean)
   async logout(@Ctx() { res }: MyContext) {
     return new Promise((resolve) => {
-      setUserCookie(res, null);
+      setUserCookie(res, 0, 0);
       resolve(true);
     });
   }
