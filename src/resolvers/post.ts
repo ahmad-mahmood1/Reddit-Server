@@ -138,11 +138,6 @@ export class PostResolver {
     );
 
     const realLimitPosts = posts.slice(0, realLimit);
-    console.log("===  realLimitPosts", realLimitPosts);
-    console.log(
-      "===cursor",
-      realLimitPosts[realLimitPosts.length - 1].createdAt
-    );
 
     return {
       posts: realLimitPosts,
