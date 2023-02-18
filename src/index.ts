@@ -23,6 +23,11 @@ const main = async () => {
     origin: process.env.CORS_ORIGIN,
   };
   app.use(cors(corsConfig));
+  let redis = new Redis({
+    host: process.env.REDIS_HOST as string,
+    port: parseInt(process.env.REDIS_PORT as string) as number,
+    password: process.env.REDIS_PASSWORD as string,
+  });
 
   app.use(cookieParser(process.env.SESSION_SECRET));
 
@@ -34,6 +39,7 @@ const main = async () => {
     context: ({ req, res }): MyContext => ({
       req,
       res,
+      redis,
       userLoader: createUserLoader(),
       voteLoader: createVoteLoader(),
       pointsLoader: createPointsLoader(),

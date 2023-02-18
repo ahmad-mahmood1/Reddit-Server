@@ -31,6 +31,7 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv = __importStar(require("dotenv"));
 const express_1 = __importDefault(require("express"));
+const ioredis_1 = __importDefault(require("ioredis"));
 require("reflect-metadata");
 const type_graphql_1 = require("type-graphql");
 const dataSource_1 = __importDefault(require("./dataSource"));
@@ -48,6 +49,11 @@ const main = async () => {
         origin: process.env.CORS_ORIGIN,
     };
     app.use((0, cors_1.default)(corsConfig));
+    let redis = new ioredis_1.default({
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT),
+        password: process.env.REDIS_PASSWORD,
+    });
     app.use((0, cookie_parser_1.default)(process.env.SESSION_SECRET));
     const apolloServer = new apollo_server_express_1.ApolloServer({
         schema: await (0, type_graphql_1.buildSchema)({
@@ -57,6 +63,7 @@ const main = async () => {
         context: ({ req, res }) => ({
             req,
             res,
+            redis,
             userLoader: (0, createUserLoader_1.createUserLoader)(),
             voteLoader: (0, createVoteLoader_1.createVoteLoader)(),
             pointsLoader: (0, createPointsLoader_1.createPointsLoader)(),
