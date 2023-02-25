@@ -59,7 +59,7 @@ class UserResponse {
 export class UserResovler {
   @FieldResolver(() => String)
   email(@Root() user: User, @Ctx() { req }: MyContext) {
-    if (req.signedCookies.uid === user.id.toString()) {
+    if (req.session.userId === user.id) {
       return user.email;
     }
     return "";
@@ -92,7 +92,7 @@ export class UserResovler {
   async changePassword(
     @Arg("newPassword") newPassword: string,
     @Arg("token") token: string,
-    @Ctx() { redis, res }: MyContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 3) {
       return {
@@ -135,7 +135,8 @@ export class UserResovler {
 
     await User.save(user);
 
-    setUserCookie(res, user.id);
+    // setUserCookie(res, user.id);
+    req.session.userId = user.id;
 
     redis.del(FORFOT_PASSWORD_PREFIX + token);
     return { user };
@@ -143,18 +144,18 @@ export class UserResovler {
 
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req }: MyContext) {
-    if (!req.signedCookies.uid) {
+    if (!req.session.userId) {
       return null;
     }
 
-    const user = await User.findOneBy({ id: req.signedCookies.uid });
+    const user = await User.findOneBy({ id: req.session.userId });
     return user;
   }
 
   @Mutation(() => UserResponse)
   async registeration(
     @Arg("options") options: RegsiterInput,
-    @Ctx() { res }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const emailValidation = await validate({
       email: options.email,
@@ -205,7 +206,7 @@ export class UserResovler {
     });
     try {
       await user.save();
-      setUserCookie(res, user.id);
+      req.session.userId = user.id;
       return { user };
     } catch (err) {
       if (err.code === "23505") {
@@ -224,7 +225,7 @@ export class UserResovler {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: LoginInput,
-    @Ctx() { res }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const { emailOrUsername, password } = options;
 
@@ -258,15 +259,22 @@ export class UserResovler {
       };
     }
 
-    setUserCookie(res, user.id);
+    req.session.userId = user.id;
 
     return { user };
   }
 
   @Mutation(() => Boolean)
-  async logout(@Ctx() { res }: MyContext) {
+  async logout(@Ctx() { req, res }: MyContext) {
     return new Promise((resolve) => {
-      setUserCookie(res, 0, 0);
+      res.clearCookie("qid");
+      req.session.destroy((err) => {
+        if (err) {
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      });
       resolve(true);
     });
   }

@@ -67,12 +67,12 @@ export class PostResolver {
 
   @FieldResolver(() => Int, { nullable: true })
   async voteStatus(@Root() post: Post, @Ctx() { voteLoader, req }: MyContext) {
-    if (!req.signedCookies.uid) {
+    if (!req.session.userId) {
       return null;
     }
     const updoot = await voteLoader.load({
       postId: post.id,
-      userId: req.signedCookies.uid,
+      userId: req.session.userId,
     });
 
     return updoot ? updoot.value : null;
@@ -88,7 +88,7 @@ export class PostResolver {
     const isUpVote = value !== -1;
     const voteValue = isUpVote ? 1 : -1;
 
-    const { uid: userId } = req.signedCookies;
+    const { userId } = req.session;
 
     const vote = await Votes.findOne({ where: { postId, userId } });
     const post = await Post.findOne({ where: { id: postId } });
@@ -175,7 +175,7 @@ export class PostResolver {
 
     const post: Post = Post.create({
       ...options,
-      creatorId: req.signedCookies.uid,
+      creatorId: req.session.userId,
     });
     await post.save();
     return { post };
@@ -195,7 +195,7 @@ export class PostResolver {
       .set({ title, text })
       .where('id = :id and "creatorId" = :creatorId', {
         id,
-        creatorId: req.signedCookies.uid,
+        creatorId: req.session.userId,
       })
       .returning("*")
       .execute();
@@ -209,7 +209,7 @@ export class PostResolver {
     @Arg("id", () => Int) id: number,
     @Ctx() { req }: MyContext
   ): Promise<boolean> {
-    await Post.delete({ id, creatorId: req.signedCookies.uid });
+    await Post.delete({ id, creatorId: req.session.userId });
     return true;
   }
 }
