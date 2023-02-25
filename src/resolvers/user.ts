@@ -11,13 +11,12 @@ import {
   ObjectType,
   Query,
   Resolver,
-  Root,
+  Root
 } from "type-graphql";
 import { v4 } from "uuid";
 import { FORFOT_PASSWORD_PREFIX } from "../constants";
 import { User } from "../entities/User";
 import sendEmail from "../utils/sendEmail";
-import { setUserCookie } from "../utils/setUserId";
 
 @InputType()
 class RegsiterInput {

@@ -27,13 +27,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const apollo_server_express_1 = require("apollo-server-express");
-const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv = __importStar(require("dotenv"));
 const express_1 = __importDefault(require("express"));
+const express_session_1 = __importDefault(require("express-session"));
 const ioredis_1 = __importDefault(require("ioredis"));
 require("reflect-metadata");
 const type_graphql_1 = require("type-graphql");
+const constants_1 = require("./constants");
 const dataSource_1 = __importDefault(require("./dataSource"));
 const post_1 = require("./resolvers/post");
 const user_1 = require("./resolvers/user");
@@ -48,13 +49,26 @@ const main = async () => {
         credentials: true,
         origin: process.env.CORS_ORIGIN,
     };
+    let RedisStore = require("connect-redis")(express_session_1.default);
     app.use((0, cors_1.default)(corsConfig));
     let redis = new ioredis_1.default({
         host: process.env.REDIS_HOST,
         port: parseInt(process.env.REDIS_PORT),
         password: process.env.REDIS_PASSWORD,
     });
-    app.use((0, cookie_parser_1.default)(process.env.SESSION_SECRET));
+    app.use((0, express_session_1.default)({
+        name: "qid",
+        store: new RedisStore({ client: redis, disableTouch: true }),
+        cookie: {
+            maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+            httpOnly: true,
+            sameSite: constants_1.__prod__ ? "none" : "lax",
+            secure: constants_1.__prod__ ? true : false,
+        },
+        saveUninitialized: false,
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+    }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
         schema: await (0, type_graphql_1.buildSchema)({
             resolvers: [post_1.PostResolver, user_1.UserResovler],

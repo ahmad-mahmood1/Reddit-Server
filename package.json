@@ -10,9 +10,6 @@
     "start": "node dist/index.js",
     "redis": "redis-server"
   },
-  "engines": {
-    "node": "14.x"
-  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
